@@ -399,4 +399,4 @@ MIT License - see LICENSE.
 
 ## Contact
 
-Open an issue on GitHub or email awail@example.com.
+Open an issue on GitHub or email abdelrhmanwramadan@gmail.com.
