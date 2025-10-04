@@ -1,6 +1,5 @@
-package com.task.library_managment_system.reposatory;
+package com.task.library_managment_system.repository;
 
-import com.task.library_managment_system.models.Author;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.NoRepositoryBean;
 import java.util.Optional;

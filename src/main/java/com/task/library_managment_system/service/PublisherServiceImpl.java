@@ -6,7 +6,7 @@ import com.task.library_managment_system.exception.EntityFoundException;
 import com.task.library_managment_system.exception.EntityNotFoundException;
 import com.task.library_managment_system.exception.publisher.PublisherAssociatedBooksException;
 import com.task.library_managment_system.models.Publisher;
-import com.task.library_managment_system.reposatory.PublisherRepo;
+import com.task.library_managment_system.repository.PublisherRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -73,7 +73,7 @@ public class PublisherServiceImpl implements PublisherService{
         if (!publisher.getName().equals(updatedPublisher.getName())&&
                 publisherRepo.findByName(updatedPublisher.getName()).isPresent()){
             log.warn("Publisher already exist before");
-            throw new EntityFoundException("Publisher already exist: "+publisher.getName());
+            throw new EntityFoundException("Publisher already exist!");
         }
         log.info("Publisher is being updated...");
         if (updatedPublisher.getName() != null) publisher.setName(updatedPublisher.getName());

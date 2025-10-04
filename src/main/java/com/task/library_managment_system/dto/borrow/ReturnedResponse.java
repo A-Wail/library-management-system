@@ -14,4 +14,5 @@ public class ReturnedResponse {
     private LocalDate borrowDate;
     private LocalDate returnDate;
     private LocalDate dueDate;
+    private String status ;
 }

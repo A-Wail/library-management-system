@@ -1,10 +1,12 @@
 package com.task.library_managment_system.dto.book;
 
 import jakarta.validation.constraints.*;
+import lombok.Builder;
 import lombok.Data;
 import org.hibernate.validator.constraints.URL;
 
 @Data
+@Builder
 public class RequestBook {
     @NotBlank(message = "ISBN is required")
     private String isbn;

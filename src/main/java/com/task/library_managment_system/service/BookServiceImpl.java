@@ -10,10 +10,10 @@ import com.task.library_managment_system.models.Author;
 import com.task.library_managment_system.models.Book;
 import com.task.library_managment_system.models.Category;
 import com.task.library_managment_system.models.Publisher;
-import com.task.library_managment_system.reposatory.AuthorRepo;
-import com.task.library_managment_system.reposatory.BookRepo;
-import com.task.library_managment_system.reposatory.CategoryRepo;
-import com.task.library_managment_system.reposatory.PublisherRepo;
+import com.task.library_managment_system.repository.AuthorRepo;
+import com.task.library_managment_system.repository.BookRepo;
+import com.task.library_managment_system.repository.CategoryRepo;
+import com.task.library_managment_system.repository.PublisherRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -39,24 +39,25 @@ public class BookServiceImpl implements BookService {
     public ShowBook createBook(RequestBook requestBook, List<Long> categoryIds,
                                Long publisherId, List<Long> authorIds) {
         if(bookRepo.findByIsbn(requestBook.getIsbn()).isPresent())
-            throw new EntityFoundException("This book is already exist with isbn: "+requestBook.getIsbn());
+            throw new EntityFoundException("This book is already exist with isbn: "
+                    +requestBook.getIsbn());
 
         List<Category> categories=categoryRepo.findAllById(categoryIds);
         if (categoryIds.size() !=categories.size()){
             throw new EntityNotFoundException("One or more categories not found");
         }
-        log.info("Categories step done");
+        log.info("Categories check done");
 
         Publisher publisher=publisherRepo.findById(publisherId)
                     .orElseThrow(()->new EntityNotFoundException("Publisher Not found with id:"+publisherId));
-        log.info("Publisher step done");
+        log.info("Publisher check done");
 
         List<Author> authors= authorRepo.findAllById(authorIds);
 
         if (authors.size() != authorIds.size()){
             throw new EntityNotFoundException("One or more authors not found");
         }
-        log.info("Authors step done");
+        log.info("Authors check done");
         log.info("Creating new book with title: {}", requestBook.getTitle());
         Book book= Book.builder()
                 .isbn(requestBook.getIsbn())
@@ -81,7 +82,7 @@ public class BookServiceImpl implements BookService {
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN', 'STAFF')")
     public ShowBook searchBookByIsbn(String isbn) {
         Book book= bookRepo.findByIsbn(isbn).
-                orElseThrow(()->new EntityNotFoundException("Book not found with isbn"+isbn));
+                orElseThrow(()->new EntityNotFoundException("Book not found with isbn:"+isbn));
 
         return convertToShowBook(book);
     }
@@ -171,7 +172,7 @@ public class BookServiceImpl implements BookService {
         boolean isBorrowed = borrowingService.isBookCurrentlyBorrowed(bookId);
 
         if (isBorrowed){
-            String errorMessage=String.format("Can't delete this book %s because it borrowed now !!"
+            String errorMessage=String.format("Can't delete this book '%s' because it borrowed now !!"
                     ,bookToDelete.getTitle());
             log.warn(errorMessage);
             throw new BookNotAvailableNowException(errorMessage);

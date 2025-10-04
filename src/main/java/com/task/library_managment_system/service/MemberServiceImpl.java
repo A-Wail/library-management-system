@@ -6,7 +6,7 @@ import com.task.library_managment_system.exception.EntityFoundException;
 import com.task.library_managment_system.exception.EntityNotFoundException;
 import com.task.library_managment_system.exception.member.MemberHasTransactionException;
 import com.task.library_managment_system.models.Member;
-import com.task.library_managment_system.reposatory.MemberRepo;
+import com.task.library_managment_system.repository.MemberRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -77,14 +77,10 @@ public class MemberServiceImpl implements MemberService{
         Member member =memberRepo.findById(memberId)
                 .orElseThrow(()->new EntityNotFoundException("Member not found with id:"+memberId));
 
-        if (updatedMember.getEmail() != null &&
-                !updatedMember.getEmail().equals(member.getEmail())) {
-            memberRepo.findByEmail(updatedMember.getEmail()).ifPresent(existingMember -> {
-                if (!existingMember.getId().equals(memberId)) {
-                    log.warn("Member email '{}' already used by another member", updatedMember.getEmail());
-                    throw new EntityFoundException("Email already exists: " + updatedMember.getEmail());
-                }
-            });
+        if (!updatedMember.getEmail().equals(member.getEmail()) &&
+                memberRepo.findByEmail(updatedMember.getEmail()).isPresent()) {
+                log.warn("Member email '{}' already used by another member", updatedMember.getEmail());
+                throw new EntityFoundException("Email already exists: " + updatedMember.getEmail());
         }
         if (updatedMember.getName() != null)    member.setName(updatedMember.getName());
         if (updatedMember.getEmail() != null)   member.setEmail(updatedMember.getEmail());

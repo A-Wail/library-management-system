@@ -6,7 +6,7 @@ import com.task.library_managment_system.exception.EntityFoundException;
 import com.task.library_managment_system.exception.EntityNotFoundException;
 import com.task.library_managment_system.exception.author.AuthorAssociatedBooksException;
 import com.task.library_managment_system.models.Author;
-import com.task.library_managment_system.reposatory.AuthorRepo;
+import com.task.library_managment_system.repository.AuthorRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,7 +38,7 @@ public class AuthorServiceImpl implements AuthorService{
                 .build();
         Author savedAuthor=authorRepo.save(author);
 
-        return convertTAuthorResponse(savedAuthor);
+        return convertToAuthorResponse(savedAuthor);
     }
 
     @Override
@@ -53,7 +53,7 @@ public class AuthorServiceImpl implements AuthorService{
         if (!author.getName().equals(updateAuthor.getName())&&
             authorRepo.findByName(updateAuthor.getName()).isPresent()){
             log.warn("Author name that insert exist before");
-            throw new EntityFoundException("Author name already exist: " + id);
+            throw new EntityFoundException("Author name already existed");
         }
 
         log.info("Author is being updated...");
@@ -62,7 +62,7 @@ public class AuthorServiceImpl implements AuthorService{
         authorRepo.save(author);
         log.info("Author updated successfully.");
 
-        return convertTAuthorResponse(author);
+        return convertToAuthorResponse(author);
     }
 
     @Override
@@ -71,7 +71,7 @@ public class AuthorServiceImpl implements AuthorService{
     public List<AuthorResponse> viewAuthors() {
 
         return authorRepo.findAll().stream()
-                .map(this::convertTAuthorResponse)
+                .map(this::convertToAuthorResponse)
                 .collect(Collectors.toList());
     }
 
@@ -83,7 +83,7 @@ public class AuthorServiceImpl implements AuthorService{
         Author author =authorRepo.findById(authorId)
                 .orElseThrow(()->new EntityNotFoundException("Author not found!"));
 
-        return convertTAuthorResponse(author);
+        return convertToAuthorResponse(author);
     }
 
     @Override
@@ -104,7 +104,7 @@ public class AuthorServiceImpl implements AuthorService{
         log.info("Author '{}' (ID: {}) deleted successfully.",
                 author.getName(), authorId);
     }
-    private AuthorResponse convertTAuthorResponse(Author author){
+    private AuthorResponse convertToAuthorResponse(Author author){
         return AuthorResponse.builder().id(author.getId()).name(author.getName())
                 .biography(author.getBio()).build();
     }

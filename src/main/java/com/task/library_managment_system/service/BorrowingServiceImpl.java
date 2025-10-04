@@ -8,9 +8,9 @@ import com.task.library_managment_system.exception.transaction.BookAlreadyReturn
 import com.task.library_managment_system.models.Book;
 import com.task.library_managment_system.models.BorrowingTransaction;
 import com.task.library_managment_system.models.Member;
-import com.task.library_managment_system.reposatory.BookRepo;
-import com.task.library_managment_system.reposatory.BorrowingTransRepo;
-import com.task.library_managment_system.reposatory.MemberRepo;
+import com.task.library_managment_system.repository.BookRepo;
+import com.task.library_managment_system.repository.BorrowingTransRepo;
+import com.task.library_managment_system.repository.MemberRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -35,13 +35,15 @@ public class BorrowingServiceImpl implements BorrowingService{
     public BorrowingResponse borrowBook(Long memberId, Long bookId) {
 
         log.info("Processing borrow request - Member ID: {}, Book ID: {}", memberId, bookId);
-
+        log.info("Check if borrower exist or not ... ");
         Member borrower = memberRepo.findById(memberId)
                 .orElseThrow(()->new EntityNotFoundException("No member with this id:"+memberId));
 
+        log.info("Check if borrowedBook exist or not ... ");
         Book borrowedBook =bookRepo.findById(bookId)
-                .orElseThrow(()->new EntityNotFoundException("No book with this id :"+bookId));
+                .orElseThrow(()->new EntityNotFoundException("No book with this id:"+bookId));
 
+        log.info("Check if book available or not ... ");
         if (isBookCurrentlyBorrowed(bookId)){
             String errorMessage=String.format("Can't borrow this book %s because it borrowed now !!"
                     ,borrowedBook.getTitle());
@@ -76,31 +78,37 @@ public class BorrowingServiceImpl implements BorrowingService{
     @Transactional
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN', 'STAFF')")
     public ReturnedResponse getBorrowingById(Long transactionId) {
+
+        log.info("Check if transaction exist or not ... ");
         BorrowingTransaction transaction=borrowingTransRepo.findById(transactionId)
                 .orElseThrow(()->new EntityNotFoundException("can't find transaction with id:"+transactionId));
+
+        log.info("Check if transaction already returned ... ");
         if (transaction.getStatus() != BorrowingTransaction.transactionState.BORROWED){
-            throw new BookAlreadyReturnedException("Book already returned "+transactionId);
+            log.warn("Book already returned!");
+            throw new BookAlreadyReturnedException("Book already returned: "+transactionId);
         }
 
         transaction.setReturnDate(LocalDate.now());
 
-        //check if book returned after or before it's dueDate
-        if (transaction.getDueDate().isBefore(LocalDate.now())){
+        log.info("Check if book returned after or before it's dueDate ... ");
+        if (transaction.getDueDate().isBefore(transaction.getReturnDate())){
             transaction.setStatus(BorrowingTransaction.transactionState.OVERDUE);
             log.warn("Overdue return detected. Transaction ID: {}", transactionId);
         }else {
             transaction.setStatus(BorrowingTransaction.transactionState.RETURNED);
         }
 
-        BorrowingTransaction updateTrans=borrowingTransRepo.save(transaction);
-
+        borrowingTransRepo.save(transaction);
+        log.info("Book returned successfully.");
         return ReturnedResponse.builder()
-                .transactionId(updateTrans.getId())
-                .bookTitle(updateTrans.getBook().getTitle())
-                .memberName(updateTrans.getMember().getName())
-                .borrowDate(updateTrans.getBorrowDate())
-                .returnDate(updateTrans.getReturnDate())
-                .dueDate(updateTrans.getDueDate())
+                .transactionId(transaction.getId())
+                .bookTitle(transaction.getBook().getTitle())
+                .memberName(transaction.getMember().getName())
+                .borrowDate(transaction.getBorrowDate())
+                .returnDate(transaction.getReturnDate())
+                .dueDate(transaction.getDueDate())
+                .status(transaction.getStatus().name())
                 .build();
     }
 

@@ -7,7 +7,7 @@ import com.task.library_managment_system.dto.systemUser.UserResponse;
 import com.task.library_managment_system.exception.EntityFoundException;
 import com.task.library_managment_system.exception.EntityNotFoundException;
 import com.task.library_managment_system.models.SystemUser;
-import com.task.library_managment_system.reposatory.SystemUserRepo;
+import com.task.library_managment_system.repository.SystemUserRepo;
 import com.task.library_managment_system.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,9 +37,11 @@ public class UserServiceImpl implements SystemUserService {
     @PreAuthorize("hasRole('ADMIN')")
     public AuthenticationResp register(RequestUser request){
         log.info("Check if User: {}, registered successfully", request.getUsername());
-        if (userRepo.findByUsername(request.getUsername()).isPresent())
-            throw new EntityFoundException("User is Register before ");
-
+        if (userRepo.findByUsername(request.getUsername()).isPresent()){
+            log.warn("User is register before!");
+            throw new EntityFoundException("User is register before!");
+        }
+        log.info("convert Dto to user...");
         SystemUser user =SystemUser.builder()
                 .email(request.getEmail())
                 .username(request.getUsername())
@@ -48,7 +50,7 @@ public class UserServiceImpl implements SystemUserService {
                 .build();
 
         userRepo.save(user);
-
+        log.info("User register Successfully.");
         String token= jwtService.generateToken(user);
 
         log.info("User '{}' registered successfully", user.getUsername());
@@ -66,12 +68,12 @@ public class UserServiceImpl implements SystemUserService {
                         request.getPassword()
                 )
         );
-        var user = userRepo.findByUsername(request.getUsername())
+        SystemUser user = userRepo.findByUsername(request.getUsername())
                 .orElseThrow( ()-> new EntityNotFoundException("User not found !!"));
 
         log.info("User Founded");
 
-        var token= jwtService.generateToken(user);
+        String token= jwtService.generateToken(user);
 
         return AuthenticationResp.builder()
                 .token(token)
@@ -89,7 +91,7 @@ public class UserServiceImpl implements SystemUserService {
         }
 
         log.info("check if email unique or not ...");
-        if (userRepo.findByUsername(requestUser.getUsername()).isPresent()){
+        if (userRepo.findByEmail(requestUser.getEmail()).isPresent()){
             log.warn("email :{}, already exist !",requestUser.getEmail());
             throw new EntityFoundException("Email already exist !!");
         }
@@ -134,14 +136,6 @@ public class UserServiceImpl implements SystemUserService {
         log.info("Updating user with ID: {}", userId);
         SystemUser user =userRepo.findById(userId)
                 .orElseThrow(()-> new EntityNotFoundException("User not found:"+userId));
-        // Prevent non-ADMINS from changing roles
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        boolean isAdmin = auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-        if (!isAdmin && requestUser.getRole() != user.getRole()) {
-            log.warn("Non-admin user {} attempted to change role", auth.getName());
-            throw new SecurityException("Only admins can change roles");
-        }
 
         log.info("check if username unique or used by other user ...");
         if (!user.getUsername().equals(requestUser.getUsername())&&
@@ -154,6 +148,14 @@ public class UserServiceImpl implements SystemUserService {
                 userRepo.findByEmail(requestUser.getEmail()).isPresent()){
             log.warn("Email'{}' is already used ...",requestUser.getEmail());
             throw new EntityFoundException("Email already used by other user change it ");
+        }
+        // Prevent non-ADMINS from changing roles
+        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
+                .getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin &&! user.getRole().equals(requestUser.getRole())) {
+            log.warn("Non-admin attempted to change role");
+            throw new SecurityException("Only admins can change roles");
         }
 
         if (requestUser.getUsername() != null) user.setUsername(requestUser.getUsername());

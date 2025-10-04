@@ -2,7 +2,7 @@ package com.task.library_managment_system.security;
 
 
 import com.task.library_managment_system.exception.EntityNotFoundException;
-import com.task.library_managment_system.reposatory.SystemUserRepo;
+import com.task.library_managment_system.repository.SystemUserRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

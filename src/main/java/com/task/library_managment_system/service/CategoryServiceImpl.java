@@ -8,7 +8,7 @@ import com.task.library_managment_system.exception.category.CategoryAssociatedBo
 import com.task.library_managment_system.exception.category.CategoryContainsChildrenException;
 import com.task.library_managment_system.exception.category.CategoryHierarchyCycleException;
 import com.task.library_managment_system.models.Category;
-import com.task.library_managment_system.reposatory.CategoryRepo;
+import com.task.library_managment_system.repository.CategoryRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,10 +31,14 @@ public class CategoryServiceImpl implements CategoryService{
     @Transactional
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     public CategoryResponse createCategory(RequestCategory request, Long parentId) {
-        Category category=categoryRepo.findByName(request.getName())
-                .orElseThrow(()->new EntityFoundException("Category you want to add is already exist :"
-                                    +request.getName() ));
-
+        // Check if category name already exists
+        if (categoryRepo.findByName(request.getName()).isPresent()) {
+            log.warn("Category already exists with name {}", request.getName());
+            throw new EntityFoundException("Category you want to add is already exist: " + request.getName());
+        }
+        Category category=Category.builder()
+                .name(request.getName())
+                .build();
         if (parentId !=null){
             Category parent=categoryRepo.findById(parentId).
                     orElseThrow(()->new EntityNotFoundException("Parent category not found"));
@@ -85,6 +89,7 @@ public class CategoryServiceImpl implements CategoryService{
         if (updatedCategory.getName() != null)  existCategory.setName(updatedCategory.getName());
 
         if (parentId !=null){
+            log.info("Check if updated parent exist already or not...");
             Category parent=categoryRepo.findById(parentId).
                     orElseThrow(()->new EntityNotFoundException("Parent category not found:"+parentId));
 
@@ -105,14 +110,16 @@ public class CategoryServiceImpl implements CategoryService{
     public void deleteCategory(Long categoryId) {
         Category deletedCategory=categoryRepo.findById(categoryId)
                 .orElseThrow(()->new EntityNotFoundException("Category not found !!"));
+
         log.info("Check if category to delete hase children category or not...");
         if (!deletedCategory.getSubCategories().isEmpty()){
             log.warn("Category '{}' to delete first you want to delete it's children "
                     ,deletedCategory.getName());
             throw new CategoryContainsChildrenException("Can't delete category with children !!");
         }
+
         log.info("Check if deleted category contains books ...");
-        if (deletedCategory.getBooks().isEmpty()){
+        if (!deletedCategory.getBooks().isEmpty()){
             log.warn("Category '{}' to delete first you want to delete books that contains !!",
                     deletedCategory.getName());
             throw new CategoryAssociatedBooksException("Can't delete category that has books !");
@@ -125,7 +132,7 @@ public class CategoryServiceImpl implements CategoryService{
         return CategoryResponse.builder()
                 .id(category.getId())
                 .name(category.getName())
-                .parentId(category.getParentCategory().getId())
+                .parentId(category.getParentCategory()!=null?category.getParentCategory().getId():null)
                 .build();
     }
 
@@ -133,7 +140,7 @@ public class CategoryServiceImpl implements CategoryService{
         Category currentCategory=category;
         Set<Long> visited=new HashSet<>();
         //check if our category has cycle or not
-        while (currentCategory != null && category.getParentCategory() != null) {
+        while (currentCategory != null && currentCategory.getParentCategory() != null) {
 
             if (visited.contains(currentCategory.getParentCategory().getId())){
                 throw new CategoryHierarchyCycleException("Category hierarchy contains cycle !!");
