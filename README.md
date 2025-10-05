@@ -232,23 +232,6 @@ mvn test
   @Query("SELECT t FROM BorrowingTransaction t WHERE t.book.id = :bookId AND t.returnDate IS NULL")
   List<BorrowingTransaction> findActiveTransactionsByBookId(@Param("bookId") Long bookId);
   ```
-- **Indexing**: Add to `borrowing_transaction`:
-
-  ```sql
-  CREATE INDEX idx_book_id_return_date ON borrowing_transaction (book_id, return_date);
-  ```
-- **Caching**: Cache book availability:
-
-  ```java
-  @Cacheable("bookAvailability")
-  public boolean isBookCurrentlyBorrowed(Long bookId) { ... }
-  ```
-- **Pagination**: Add to `MemberServiceImpl.viewAllMembers`:
-
-  ```java
-  Page<MemberResponse> viewAllMembers(Pageable pageable);
-  ```
-
 ### Testing
 
 - **Unit Tests**: Test `BorrowingServiceImpl` with JUnit/Mockito:
@@ -279,21 +262,6 @@ mvn test
 
 ### Future Extensions
 
-- **Fine Calculation**: Add to `BorrowingServiceImpl.getBorrowingById`:
-
-  ```java
-  if (transaction.getReturnDate().isAfter(transaction.getDueDate())) {
-      long daysOverdue = ChronoUnit.DAYS.between(transaction.getDueDate(), transaction.getReturnDate());
-      double fine = daysOverdue * 1.0; // $1 per day
-      transaction.setFine(fine);
-  }
-  ```
-- **Search API**: Add `GET /api/v1/books/search?title={query}`:
-
-  ```java
-  @Query("SELECT b FROM Book b WHERE LOWER(b.title) LIKE LOWER(CONCAT('%', :query, '%'))")
-  List<Book> searchByTitle(@Param("query") String query);
-  ```
 - **Author-Book Relationship**: Ensure bidirectional `@ManyToMany` mapping (from past discussion):
 
   ```java
@@ -311,35 +279,9 @@ mvn test
       private Set<Author> authors = new HashSet<>();
   }
   ```
-- **Email Notifications**: Use Spring Mail:
-
-  ```java
-  @Autowired
-  private JavaMailSender mailSender;
-  public void sendOverdueReminder(BorrowingTransaction transaction) {
-      SimpleMailMessage message = new SimpleMailMessage();
-      message.setTo(transaction.getMember().getEmail());
-      message.setSubject("Overdue Book Reminder");
-      message.setText("Please return " + transaction.getBook().getTitle() + " due on " + transaction.getDueDate());
-      mailSender.send(message);
-  }
-  ```
 
 ### Deployment
 
-- **Docker**:
-
-  ```dockerfile
-  FROM openjdk:17-jdk-slim
-  COPY target/library-management-system.jar app.jar
-  ENV SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/library_db?allowPublicKeyRetrieval=true
-  ENTRYPOINT ["java", "-jar", "/app.jar"]
-  ```
-
-  ```bash
-  docker build -t library-management-system .
-  docker run -p 8080:8080 --link mysql-container:db library-management-system
-  ```
 - **GitHub Actions CI**:
 
   ```yaml
