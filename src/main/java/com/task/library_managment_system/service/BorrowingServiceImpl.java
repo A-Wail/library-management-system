@@ -114,7 +114,7 @@ public class BorrowingServiceImpl implements BorrowingService{
 
     @Override
     @Transactional(readOnly = true)
-    public boolean isBookCur1rentlyBorrowed(Long bookId) {
+    public boolean isBookCurrentlyBorrowed(Long bookId) {
             log.debug("Check if current book id {} is currently borrowed",bookId);
             List<BorrowingTransaction> activeTransactions=findActiveTransactionsByBookId(bookId);
         return !activeTransactions.isEmpty();
